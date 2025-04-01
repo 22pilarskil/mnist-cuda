@@ -1,0 +1,4 @@
+*.o
+data/
+chunks/
+train
