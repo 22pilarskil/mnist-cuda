@@ -9,6 +9,7 @@ typedef enum {
     LAYER_LEAKY_RELU,
     LAYER_SOFTMAX,
     LAYER_INPUT,
+    LAYER_SIGMOID
 } LayerType;
 
 typedef enum {
@@ -23,6 +24,7 @@ typedef struct Layer {
     float* inputs;
     float* upstream_grads;
     float* downstream_grads;
+    const char* name;
 } Layer;
 
 

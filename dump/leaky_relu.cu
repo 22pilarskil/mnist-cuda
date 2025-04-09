@@ -47,7 +47,7 @@ void host_leakyReLU_backward(Layer* layer, LeakyReLU* leakyReLU, int batch_size)
     for (int i = 0; i < batch_size; i++) {
         for (int j = 0; j < dim; j++) {
             int idx = i * dim + j;
-            if (layer->inputs[idx] >= 0) {
+            if (layer->outputs[idx] > 0) {
                 layer->downstream_grads[idx] = layer->upstream_grads[idx];
             } else {
                 layer->downstream_grads[idx] = leakyReLU->coeff * layer->upstream_grads[idx];

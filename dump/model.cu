@@ -83,11 +83,9 @@ Model* init_model(int batch_size) {
     model->batch_size = batch_size;
     model->layers[0] = initInputBuffer(batch_size, 784);
     model->layers[1] = initDenseLayer(batch_size, 784, 256, model->layers[0]->outputs, 1); // dense 1
-    model->layers[2] = initLeakyReLU(batch_size, 256, 0.1, model->layers[1]->outputs); // reul 1
-    // model->layers[2] = initSigmoid(batch_size, 256, model->layers[1]->outputs); // sigmoid 1
+    model->layers[2] = initSigmoid(batch_size, 256, model->layers[1]->outputs); // sigmoid 1
     model->layers[3] = initDenseLayer(batch_size, 256, 64, model->layers[2]->outputs, 2); // dense 2
-    model->layers[4] = initLeakyReLU(batch_size, 64, 0.1, model->layers[3]->outputs); // relu 2
-    // model->layers[4] = initSigmoid(batch_size, 64, model->layers[3]->outputs); // sigmoid 2
+    model->layers[4] = initSigmoid(batch_size, 64, model->layers[3]->outputs); // sigmoid 2
     model->layers[5] = initDenseLayer(batch_size, 64, 10, model->layers[4]->outputs, 3); // dense 3
     model->layers[6] = initSoftmax(batch_size, 10, model->layers[5]->outputs); // softmax
     model->layers[6]->name = "softmax";

@@ -19,11 +19,10 @@ Layer* initDenseLayer(int batch_size, int in_dim, int out_dim, float* inputs, in
     cudaMallocManaged(&denseLayer->weights_grad, (in_dim + 1) * out_dim * sizeof(float));
     cudaMallocManaged(&denseLayer->weights_T, (in_dim + 1) * out_dim * sizeof(float));
 
-    srand(42 + id);
-    float scale = sqrtf(2.0f / (in_dim + out_dim)); // He initialization for ReLU-like networks
-    for (int i = 0; i < (in_dim + 1) * out_dim; i++) {
-        denseLayer->weights[i] = scale * ((float)rand() / RAND_MAX - 0.5f); // Random [-scale/2, scale/2]
-    }
+    // srand(42);
+    // for (int i = 0; i < (in_dim + 1) * out_dim; i++) {
+    //     denseLayer->weights[i] = 2.0f * ((float)rand() / RAND_MAX) - 1.0f;
+    // }
 
 
     layer->downstream_grads = (float*)malloc(batch_size * in_dim * sizeof(float));
@@ -88,7 +87,7 @@ void host_dense_backward(DenseLayer* denseLayer, Layer* layer, int batch_size) {
 
     for (int i = 0; i < batch_size; i++) {
         for (int j = 0; j < in_dim; j++) {
-            layer->downstream_grads[i * in_dim + j] = inputs_augmented[i * (in_dim + 1) + j];
+            layer->downstream_grads[i * in_dim + j] = inputs_augmented[i * in_dim + j];
         }
     }
 }

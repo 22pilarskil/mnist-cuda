@@ -20,26 +20,24 @@ void cross_entropy_forward(Loss* loss, int batch_size, uint8_t* targets) {
 void host_cross_entropy(Loss* loss, int batch_size, uint8_t* targets) {
 
     float total_loss = 0;
-    float total_accuracy = 0;
     #pragma omp parallel
     for (int i = 0; i < batch_size; i++) {
-        int max_id = 0;
-        float max_score = 0;
+        int non_zero_count = 0;
         for (int j = 0; j < loss->dim; j++) {
             int idx = i * loss->dim + j;
             float predicted = loss->inputs[idx];
-            if (predicted > max_score) {
-                max_score = predicted;
-                max_id = j;
-            }
             if (targets[i] == j) {
                 loss->downstream_grads[idx] = predicted - 1.0f;
                 total_loss += -log(loss->inputs[idx] + 1e-5);
+                non_zero_count++;
             } else {
                 loss->downstream_grads[idx] = predicted;
             }
         }
-        total_accuracy += (max_id == targets[i]);
+        if (non_zero_count > 1) {
+            fprintf(stderr, "Error: non_zero_count was greater than 1\n");
+            exit(EXIT_FAILURE);
+        }
     }
-    printf("TOTAL LOSS: %f | TOTAL ACCURACY: %f\n", total_loss / batch_size, total_accuracy / batch_size);
+    printf("TOTAL LOSS: %f\n", total_loss / 64);
 }
