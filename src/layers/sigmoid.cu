@@ -12,6 +12,10 @@ Layer* initSigmoid(int batch_size, int dim, float* inputs) {
 
     cudaMallocManaged(&layer->outputs, batch_size * dim * sizeof(float));
 
+    layer->forward = sigmoid_forward;
+    layer->backward = sigmoid_backward;
+    layer->update = sigmoid_update;
+    layer->weights_size = 0;
     layer->downstream_grads = (float*)malloc(batch_size * dim * sizeof(float));
     layer->inputs = inputs;
     layer->layer_data = sigmoid;
@@ -27,6 +31,7 @@ void sigmoid_forward(Layer* layer, int batch_size) {
 
 
 void host_sigmoid_forward(float* inputs, float* outs, int batch_size, int dim) {
+    #pragma omp parallel for collapse(2)
     for (int i = 0; i < batch_size; i++) {
         for (int j = 0; j < dim; j++) {
             int idx = i * dim + j;
@@ -41,10 +46,15 @@ void sigmoid_backward(Layer* layer, int batch_size) {
 }
 
 void host_sigmoid_backward(float* upstream_grads, float* downstream_grads, float* outputs, int batch_size, int dim) {
+    #pragma omp parallel for collapse(2)
     for (int i = 0; i < batch_size; i++) {
         for (int j = 0; j < dim; j++) {
             int idx = i * dim + j;
             downstream_grads[idx] = outputs[idx] * (1 - outputs[idx]) * upstream_grads[idx];
         }
     }
+}
+
+void sigmoid_update(Layer* layer, int batch_size) {
+    
 }

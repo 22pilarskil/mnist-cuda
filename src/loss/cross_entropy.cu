@@ -41,5 +41,6 @@ void host_cross_entropy(Loss* loss, int batch_size, uint8_t* targets) {
         }
         total_accuracy += (max_id == targets[i]);
     }
-    printf("TOTAL LOSS: %f | TOTAL ACCURACY: %f\n", total_loss / batch_size, total_accuracy / batch_size);
+    loss->accuracy = total_accuracy / batch_size;
+    loss->loss = total_loss / batch_size;
 }

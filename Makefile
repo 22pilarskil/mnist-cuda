@@ -1,11 +1,11 @@
 # Compilers
 NVCC        = nvcc
-MPICXX      = mpicxx
+MPICXX      = mpicxx -w
 
 # Flags
-NVCCFLAGS   = -arch=sm_90 -O3
-CFLAGS      = -Wall -fopenmp
-LDFLAGS     = -lcudart
+NVCCFLAGS   = -arch=sm_90 -O3 -Xcudafe -w -Xcompiler -fopenmp
+CFLAGS      = -fopenmp -w
+LDFLAGS     = -lcudart -fopenmp -w
 
 # Paths (adjust these based on your system)
 CUDA_LIB_DIR = /usr/local/cuda/lib64

@@ -3,6 +3,12 @@
 #include "../include/model.h"
 #include "../include/utils.h"
 #include <mpi.h>
+#include <time.h>
+#include <chrono>
+#include <iostream>
+
+
+#define EPOCHS 100
 
 int main(int argc, char *argv[]) {
 
@@ -12,6 +18,12 @@ int main(int argc, char *argv[]) {
     int size;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+    int nDevices;
+    cudaGetDeviceCount(&nDevices);
+
+    int device_id = rank % nDevices;
+    cudaSetDevice(device_id);
 
     uint32_t batch_size = 64;
     MNISTData data = load_mnist(batch_size, rank);
@@ -25,25 +37,50 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
+    fflush(stdout);
     MPI_Barrier(MPI_COMM_WORLD);
     // Iterate over training batches
-    for (int j = 0; j < 100; j++) {
+    if (rank == 0) {
+        make_results_dir();
+    }
+    for (int epoch = 0; epoch < EPOCHS; epoch++) {
+        float total_loss = 0;
+        float total_accuracy = 0;
+        auto start = std::chrono::high_resolution_clock::now();
         for (uint32_t i = 0; i < data.train.num_batches; i++) {
+
             load_batch(&data, 1, i, batch_images, batch_labels);
-            printf("Train batch %u: First label = %u: rank = %d\n", i, batch_labels[0], rank);
-            // print_grayscale_image(batch_images, 28, 28);
-            // fflush(stdout);
-            MPI_Barrier(MPI_COMM_WORLD);
+
             forward(model, batch_images, batch_labels);
+            total_loss += model->loss->loss;
+            total_accuracy += model->loss->accuracy;
             backward(model);
-            // Train your neural network here
+
+            MPI_Barrier(MPI_COMM_WORLD);
+
+            if (USE_MPI) {
+
+                MPI_Allreduce(MPI_IN_PLACE, model->broadcast_weights_grads, model->broadcast_weights_size / sizeof(float), MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
+                host_multiply(model->broadcast_weights_grads, model->broadcast_weights_size / sizeof(float), 1. / size);
+                update(model);
+
+            }
         }
+
+        auto end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<float> time_spent = end - start;
+        float avg_accuracy = total_accuracy / data.train.num_batches;
+        float avg_loss = total_loss / data.train.num_batches;
+        printf("EPOCH: %d | Avg Accuracy: %f | Avg Loss: %f | Time elapsed: %f | Rank: %d | GPU ID: %d\n", epoch, avg_accuracy, avg_loss, time_spent.count(), rank, device_id);
+
+        write_results(epoch, avg_accuracy, avg_loss, rank);
+        fflush(stdout);
     }
 
     free(batch_images);
     free(batch_labels);
     free_mnist(&data);
 
-    // MPI_Finalize();
+    MPI_Finalize();
     return 0;
 }

@@ -6,4 +6,6 @@ typedef struct {
 
 Layer* initInputBuffer(int batch_size, int dim);
 void inputBuffer_forward(Layer* layer, float* inputs, int batch_size);
+void inputBuffer_update(Layer* layer, int batch_size);
+
 

@@ -1,7 +1,11 @@
 #include "../include/model.h"
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
+#define TILE_SIZE 16
 
 void host_matrix_multiply(float* A, float* B, float* C, int N, int K, int M) {
 
@@ -22,6 +26,46 @@ void host_matrix_multiply(float* A, float* B, float* C, int N, int K, int M) {
         }
     }
 }
+
+__global__ void cuda_matrix_multiply_kernel(float *A, float *B, float *C, int M, int N, int K) {
+    __shared__ float Asub[TILE_SIZE][TILE_SIZE];
+    __shared__ float Bsub[TILE_SIZE][TILE_SIZE];
+
+    int row = blockIdx.y * TILE_SIZE + threadIdx.y;
+    int col = blockIdx.x * TILE_SIZE + threadIdx.x;
+
+    float sum = 0.0f;
+
+    for (int t = 0; t < (K + TILE_SIZE - 1) / TILE_SIZE; ++t) {
+
+        if (row < M && t * TILE_SIZE + threadIdx.x < K)
+            Asub[threadIdx.y][threadIdx.x] = A[row * K + t * TILE_SIZE + threadIdx.x];
+        else
+            Asub[threadIdx.y][threadIdx.x] = 0.0f;
+
+        if (t * TILE_SIZE + threadIdx.y < K && col < N)
+            Bsub[threadIdx.y][threadIdx.x] = B[(t * TILE_SIZE + threadIdx.y) * N + col];
+        else
+            Bsub[threadIdx.y][threadIdx.x] = 0.0f;
+
+        __syncthreads();
+
+        for (int i = 0; i < TILE_SIZE; ++i)
+            sum += Asub[threadIdx.y][i] * Bsub[i][threadIdx.x];
+        __syncthreads();
+    }
+
+    if (row < M && col < N)
+        C[row * N + col] = sum;
+}
+
+void cuda_matrix_multiply(float* A, float* B, float* C, int N, int K, int M) {
+    dim3 blockDim(TILE_SIZE, TILE_SIZE);
+    dim3 gridDim((N + TILE_SIZE - 1) / TILE_SIZE, (M + TILE_SIZE - 1) / TILE_SIZE);
+    cuda_matrix_multiply_kernel<<<gridDim, blockDim>>>(A, B, C, M, N, K);
+    CUDA_CHECK(cudaDeviceSynchronize());
+}
+
 
 void host_transpose(float* weights, float* weights_T, int in_dim, int out_dim) {
     #pragma omp parallel for collapse(2)
@@ -52,4 +96,59 @@ void print_matrix(float* matrix, int rows, int cols) {
         }
         printf("\n");
     }
+}
+
+void host_multiply(float* weights, int weights_size, float coeff) {
+    #pragma omp parallel for
+    for (int i = 0; i < weights_size; i++) {
+        weights[i] *= coeff;
+    }
+}
+
+char* get_dir_name() {
+    char* dir_name = (char*)malloc(64 * sizeof(char));
+    if (dir_name == NULL) {
+        perror("Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
+    char suffix[64] = "";
+    if (USE_CUDA) {
+        strcat(suffix, "_withcuda");
+    }
+    if (USE_MPI) {
+        strcat(suffix, "_withmpi");
+    }
+    snprintf(dir_name, 64, "results%s", suffix);
+    return dir_name;
+}
+
+void make_results_dir() {
+    struct stat st = {0};
+    char* dir_name = get_dir_name();
+    if (stat(dir_name, &st) == -1) {
+        if (mkdir(dir_name, 0700) == -1) {
+            perror("Error creating directory");
+            exit(EXIT_FAILURE);
+        } else {
+            printf("Directory %s created successfully.\n", dir_name);
+        }
+    } else {
+        printf("Directory %s already exists.\n", dir_name);
+    }
+    free(dir_name);
+
+}
+
+void write_results(int epoch, float avg_accuracy, float avg_loss, int rank) {
+    char filename[128];
+    char* dir_name = get_dir_name();
+    snprintf(filename, sizeof(filename), "%s/%d.txt", dir_name, rank);
+    FILE *fp = fopen(filename, "a");
+    if (fp == NULL) {
+        fprintf(stderr, "Failed to open file %s for writing\n", filename);
+        exit(EXIT_FAILURE);
+    }
+    fprintf(fp, "Epoch %d: Avg Accuracy = %f, Avg Loss = %f\n", epoch, avg_accuracy, avg_loss);
+    fclose(fp);
+    free(dir_name);
 }

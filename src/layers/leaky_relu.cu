@@ -12,6 +12,10 @@ Layer* initLeakyReLU(int batch_size, int dim, int coeff, float* inputs) {
 
     cudaMallocManaged(&layer->outputs, batch_size * dim * sizeof(float));
 
+    layer->forward = leakyReLU_forward;
+    layer->backward = leakyReLU_backward;
+    layer->update = leakyReLU_update;
+    layer->weights_size = 0;
     layer->downstream_grads = (float*)malloc(batch_size * dim * sizeof(float));
     layer->inputs = inputs;
     layer->layer_data = leakyReLU;
@@ -44,6 +48,7 @@ void leakyReLU_backward(Layer* layer, int batch_size) {
 
 void host_leakyReLU_backward(Layer* layer, LeakyReLU* leakyReLU, int batch_size) {
     int dim = leakyReLU->dim;
+    #pragma omp parallel for collapse(2)
     for (int i = 0; i < batch_size; i++) {
         for (int j = 0; j < dim; j++) {
             int idx = i * dim + j;
@@ -54,4 +59,8 @@ void host_leakyReLU_backward(Layer* layer, LeakyReLU* leakyReLU, int batch_size)
             }
         }
     }
+}
+
+void leakyReLU_update(Layer* layer, int batch_size) {
+    
 }

@@ -12,6 +12,10 @@ Layer* initSoftmax(int batch_size, int dim, float* inputs) {
 
     cudaMallocManaged(&layer->outputs, batch_size * dim * sizeof(float));
 
+    layer->forward = softmax_forward;
+    layer->backward = softmax_backward;
+    layer->update = softmax_update;
+    layer->weights_size = 0;
     layer->downstream_grads = (float*)malloc(batch_size * dim * sizeof(float));
     layer->inputs = inputs;
     layer->layer_data = softmax;
@@ -30,6 +34,7 @@ void host_softmax_forward(float* inputs, float* outs, int batch_size, int dim) {
     float* sums = (float*)calloc(batch_size, sizeof(float));
     float* max_vals = (float*)calloc(batch_size, sizeof(float));
 
+    #pragma omp parallel for
     for (int i = 0; i < batch_size; i++){
         float max_val = -INFINITY;
         for (int j = 0; j < dim; j++) {
@@ -43,6 +48,7 @@ void host_softmax_forward(float* inputs, float* outs, int batch_size, int dim) {
         }
     }
 
+    #pragma omp parallel for
     for (int i = 0; i < batch_size; i++) {
         for (int j = 0; j < dim; j++) {
             int idx = i * dim + j;
@@ -56,9 +62,14 @@ void softmax_backward(Layer* layer, int batch_size) {
 }
 
 void host_softmax_backward(float* upstream_grads, float* downstream_grads, float* outputs, int batch_size, int dim) {
+    #pragma omp parallel for collapse(2)
     for (int i = 0; i < batch_size; i++) {
         for (int j = 0; j < dim; j++) {
             downstream_grads[i * dim + j] = upstream_grads[i * dim + j];
         }
     }
+}
+
+void softmax_update(Layer* layer, int batch_size) {
+    
 }

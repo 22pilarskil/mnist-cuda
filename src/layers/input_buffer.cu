@@ -11,6 +11,7 @@ Layer* initInputBuffer(int batch_size, int dim) {
     inputBuffer->dim = dim;
     cudaMallocManaged(&layer->outputs, batch_size * dim * sizeof(float));
 
+    layer->weights_size = 0;
     layer->layer_data = inputBuffer;
     layer->type = LAYER_INPUT;
     return layer;
@@ -20,4 +21,8 @@ Layer* initInputBuffer(int batch_size, int dim) {
 void inputBuffer_forward(Layer* layer, float* inputs, int batch_size) {
     InputBuffer* inputBuffer = (InputBuffer*)layer->layer_data;      
     cudaMemcpy(layer->outputs, inputs, inputBuffer->dim * batch_size * sizeof(float), cudaMemcpyHostToDevice);
+}
+
+void inputBuffer_update(Layer* layer, int batch_size) {
+    
 }

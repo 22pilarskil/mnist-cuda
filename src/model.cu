@@ -9,33 +9,13 @@
 #include <stdio.h>
 
 void forward(Model* model, float* inputs, uint8_t* targets) {
+    inputBuffer_forward(model->input_buffer, inputs, model->batch_size);
     for (int i = 0; i < model->n_layers; i++) {
-        switch (model->layers[i]->type) {
-            case LAYER_INPUT: {
-                inputBuffer_forward(model->layers[i], inputs, model->batch_size);
-                break;
-            }
-            case LAYER_DENSE: {
-                dense_forward(model->layers[i], model->batch_size);
-                break;
-            }
-            case LAYER_LEAKY_RELU: {
-                leakyReLU_forward(model->layers[i], model->batch_size);
-                break;
-            }
-            case LAYER_SOFTMAX: {
-                softmax_forward(model->layers[i], model->batch_size);
-                break;
-            }
-            case LAYER_SIGMOID: {
-                sigmoid_forward(model->layers[i], model->batch_size);
-                break;
-            }
-            default: {
-                fprintf(stderr, "Error: Unexpected layer %d\n", model->layers[i]->type);
-                exit(EXIT_FAILURE);
-            }
+        if (model->layers[i]->type >= LAYER_TYPE_COUNT) {
+            printf("Invalid layer type: %d\n", model->layers[i]->type);
+            exit(EXIT_FAILURE);
         }
+        model->layers[i]->forward(model->layers[i], model->batch_size);
     }
     switch (model->loss->type) {
         case LOSS_CROSS_ENTROPY: {
@@ -43,62 +23,75 @@ void forward(Model* model, float* inputs, uint8_t* targets) {
             break;
         }
         default: {
-            fprintf(stderr, "Error: Unexpected loss %d\n", model->loss->type);
+            printf("Error: Unexpected loss %d\n", model->loss->type);
             exit(EXIT_FAILURE);
         }
     }
 }
 
 void backward(Model* model) {
-    for (int i = model->n_layers-1; i > 0; i--) {
-        switch (model->layers[i]->type) {
-            case LAYER_DENSE: {
-                dense_backward(model->layers[i], model->batch_size);
-                break;
-            }
-            case LAYER_LEAKY_RELU: {
-                leakyReLU_backward(model->layers[i], model->batch_size);
-                break;
-            }
-            case LAYER_SOFTMAX: {
-                softmax_backward(model->layers[i], model->batch_size);
-                break;
-            }
-            case LAYER_SIGMOID: {
-                sigmoid_backward(model->layers[i], model->batch_size);
-                break;
-            }
-            default: {
-                fprintf(stderr, "Error: Unexpected layer %d\n", model->layers[i]->type);
-                exit(EXIT_FAILURE);
+    int offset = model->broadcast_weights_size;
+    for (int i = model->n_layers-1; i >= 0; i--) {
+        if (model->layers[i]->type >= LAYER_TYPE_COUNT) {
+            printf("Invalid layer type: %d\n", model->layers[i]->type);
+            exit(EXIT_FAILURE);
+        }
+        model->layers[i]->backward(model->layers[i], model->batch_size);
+        if (USE_MPI) {
+            int weights_size = model->layers[i]->weights_size;
+            if (weights_size > 0) {
+                offset -= weights_size;
+                COPY((void*)model->broadcast_weights_grads + offset, (void*)model->layers[i]->weights_grads, weights_size);
             }
         }
+    }
+}
+
+void update(Model* model) {
+    int offset = model->broadcast_weights_size;
+    for (int i = model->n_layers-1; i >= 0; i--) {
+        if (model->layers[i]->type >= LAYER_TYPE_COUNT) {
+            printf("Invalid layer type: %d\n", model->layers[i]->type);
+            exit(EXIT_FAILURE);
+        }
+
+        int weights_size = model->layers[i]->weights_size;
+        if (weights_size > 0) {
+            offset -= weights_size;
+            COPY((void*)model->layers[i]->weights_grads, (void*)model->broadcast_weights_grads + offset, weights_size);
+        }
+        model->layers[i]->update(model->layers[i], model->batch_size);
     }
 }
 
 
 Model* init_model(int batch_size) {
     Model* model = (Model*)malloc(sizeof(Model));
-    model->n_layers = 7;
+    model->n_layers = 6;
     model->batch_size = batch_size;
-    model->layers[0] = initInputBuffer(batch_size, 784);
-    model->layers[1] = initDenseLayer(batch_size, 784, 256, model->layers[0]->outputs, 1); // dense 1
-    model->layers[2] = initLeakyReLU(batch_size, 256, 0.1, model->layers[1]->outputs); // reul 1
-    // model->layers[2] = initSigmoid(batch_size, 256, model->layers[1]->outputs); // sigmoid 1
-    model->layers[3] = initDenseLayer(batch_size, 256, 64, model->layers[2]->outputs, 2); // dense 2
-    model->layers[4] = initLeakyReLU(batch_size, 64, 0.1, model->layers[3]->outputs); // relu 2
-    // model->layers[4] = initSigmoid(batch_size, 64, model->layers[3]->outputs); // sigmoid 2
-    model->layers[5] = initDenseLayer(batch_size, 64, 10, model->layers[4]->outputs, 3); // dense 3
-    model->layers[6] = initSoftmax(batch_size, 10, model->layers[5]->outputs); // softmax
-    model->layers[6]->name = "softmax";
-    model->loss = initCrossEntropyLoss(batch_size, 10, model->layers[6]->outputs);
+    model->input_buffer = initInputBuffer(batch_size, 784);
+    model->layers[0] = initDenseLayer(batch_size, 784, 256, model->input_buffer->outputs, 1); // dense 1
+    model->layers[1] = initLeakyReLU(batch_size, 256, 0.1, model->layers[0]->outputs); // reul 1
+    model->layers[2] = initDenseLayer(batch_size, 256, 64, model->layers[1]->outputs, 2); // dense 2
+    model->layers[3] = initLeakyReLU(batch_size, 64, 0.1, model->layers[2]->outputs); // relu 2
+    model->layers[4] = initDenseLayer(batch_size, 64, 10, model->layers[3]->outputs, 3); // dense 3
+    model->layers[5] = initSoftmax(batch_size, 10, model->layers[4]->outputs); // softmax
+    model->loss = initCrossEntropyLoss(batch_size, 10, model->layers[5]->outputs);
 
-    model->layers[6]->upstream_grads = model->loss->downstream_grads;
-    model->layers[5]->upstream_grads = model->layers[6]->downstream_grads;
+    model->layers[5]->upstream_grads = model->loss->downstream_grads;
     model->layers[4]->upstream_grads = model->layers[5]->downstream_grads;
     model->layers[3]->upstream_grads = model->layers[4]->downstream_grads;
     model->layers[2]->upstream_grads = model->layers[3]->downstream_grads;
     model->layers[1]->upstream_grads = model->layers[2]->downstream_grads;
+    model->layers[0]->upstream_grads = model->layers[1]->downstream_grads;
+
+    int total_size = 0;
+    for (int i = 0; i < model->n_layers; i++) {
+        total_size += model->layers[i]->weights_size;
+    }
+    model->broadcast_weights_size = total_size;
+    
+    CUDA_CHECK(cudaMallocManaged((void**)&model->broadcast_weights_grads, total_size));
 
     return model;
 }
