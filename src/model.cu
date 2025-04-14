@@ -1,4 +1,5 @@
 #include "../include/model.h"
+#include "../include/macros.h"
 #include "../include/utils.h"
 #include "../include/layers/input_buffer.h"
 #include "../include/layers/dense.h"
@@ -91,7 +92,7 @@ Model* init_model(int batch_size) {
     }
     model->broadcast_weights_size = total_size;
     
-    CUDA_CHECK(cudaMallocManaged((void**)&model->broadcast_weights_grads, total_size));
+    MALLOC((void**)&model->broadcast_weights_grads, total_size);
 
     return model;
 }

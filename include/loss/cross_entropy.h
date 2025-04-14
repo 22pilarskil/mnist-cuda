@@ -1,4 +1,5 @@
 #include "../../include/model.h"
+#include "../../include/macros.h"
 
 Loss* initCrossEntropyLoss(int batch_size, int dim, float* inputs);
 void cross_entropy_forward(Loss* loss, int batch_size, uint8_t* targets);

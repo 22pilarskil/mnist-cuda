@@ -6,4 +6,4 @@ conda activate mnist-env
 
 \bcudaMallocManaged\((.*)\);
 
-CUDA_CHECK(cudaMallocManaged($1));
+MALLOC($1);

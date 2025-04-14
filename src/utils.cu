@@ -1,4 +1,5 @@
 #include "../include/model.h"
+#include "../include/macros.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>

@@ -1,4 +1,5 @@
 #include "../../include/model.h"
+#include "../../include/macros.h"
 #include "../../include/utils.h"
 #include "../../include/layers/softmax.h"
 #include <stdio.h>

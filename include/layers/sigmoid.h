@@ -1,4 +1,5 @@
 #include "../../include/model.h"
+#include "../../include/macros.h"
 
 typedef struct {
     int dim;

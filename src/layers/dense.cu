@@ -1,4 +1,5 @@
 #include "../../include/model.h"
+#include "../../include/macros.h"
 #include "../../include/utils.h"
 #include "../../include/layers/dense.h"
 #include <stdio.h>
@@ -15,19 +16,19 @@ Layer* initDenseLayer(int batch_size, int in_dim, int out_dim, float* inputs, in
     denseLayer->id = id;
 
     layer->weights_size = (in_dim + 1) * out_dim * sizeof(float);
-    CUDA_CHECK(cudaMallocManaged(&layer->outputs, batch_size * out_dim * sizeof(float)));
-    CUDA_CHECK(cudaMallocManaged(&denseLayer->inputs_augmented, batch_size * (in_dim + 1) * sizeof(float)));
-    CUDA_CHECK(cudaMallocManaged(&denseLayer->inputs_augmented_T, batch_size * (in_dim + 1) * sizeof(float)));
-    CUDA_CHECK(cudaMallocManaged((void**)&layer->weights, layer->weights_size));
-    CUDA_CHECK(cudaMallocManaged((void**)&layer->weights_grads, layer->weights_size));
-    CUDA_CHECK(cudaMallocManaged(&denseLayer->weights_T, layer->weights_size));
+    
+    MALLOC(&layer->outputs, batch_size * out_dim * sizeof(float));
+    MALLOC(&denseLayer->inputs_augmented, batch_size * (in_dim + 1) * sizeof(float));
+    MALLOC(&denseLayer->inputs_augmented_T, batch_size * (in_dim + 1) * sizeof(float));
+    MALLOC((void**)&layer->weights, layer->weights_size);
+    MALLOC((void**)&layer->weights_grads, layer->weights_size);
+    MALLOC(&denseLayer->weights_T, layer->weights_size);
 
     srand(42);
     float scale = sqrtf(2.0f / (in_dim + out_dim)); // He initialization for ReLU-like networks
     for (int i = 0; i < (in_dim + 1) * out_dim; i++) {
         layer->weights[i] = scale * ((float)rand() / RAND_MAX - 0.5f); // Random [-scale/2, scale/2]
     }
-
 
     layer->forward = dense_forward;
     layer->backward = dense_backward;

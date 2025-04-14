@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "../include/mnist_loader.h"
 #include "../include/model.h"
+#include "../include/macros.h"
 #include "../include/utils.h"
 #include <mpi.h>
 #include <time.h>

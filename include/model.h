@@ -2,30 +2,6 @@
 #include <stdint.h>
 #include <stdio.h>
 
-
-#define USE_CUDA 1
-#define USE_MPI 1
-#define LR 0.01
-
-#ifdef USE_CUDA
-    #define COPY(dst, src, size) CUDA_CHECK(cudaMemcpy(dst, src, size, cudaMemcpyDeviceToDevice))
-#else
-    #define COPY(dst, src, size) memcpy(dst, src, size)
-#endif
-
-
-#define CUDA_CHECK(call)                                                       \
-    do {                                                                       \
-        cudaError_t err = call;                                                \
-        if (err != cudaSuccess) {                                              \
-            printf("CUDA error at %s:%d: %s (%d)\n",                  \
-                    __FILE__, __LINE__, cudaGetErrorString(err), err);        \
-            fflush(stdout);                                                    \
-            exit(1);                                                            \
-        }                                                                      \
-    } while (0)
-
-
 typedef void (*ForwardFunc)(struct Layer* layer, int batch_size);
 typedef void (*BackwardFunc)(struct Layer* layer, int batch_size);
 typedef void (*UpdateFunc)(struct Layer* layer, int batch_size);
