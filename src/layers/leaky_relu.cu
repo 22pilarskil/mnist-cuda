@@ -17,7 +17,7 @@ Layer* initLeakyReLU(int batch_size, int dim, int coeff, float* inputs) {
     layer->backward = leakyReLU_backward;
     layer->update = leakyReLU_update;
     layer->weights_size = 0;
-    layer->downstream_grads = (float*)malloc(batch_size * dim * sizeof(float));
+    MALLOC(&layer->downstream_grads, batch_size * dim * sizeof(float));
     layer->inputs = inputs;
     layer->layer_data = leakyReLU;
     layer->type = LAYER_LEAKY_RELU;

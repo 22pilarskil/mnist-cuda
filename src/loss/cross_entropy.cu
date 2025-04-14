@@ -7,7 +7,7 @@
 
 Loss* initCrossEntropyLoss(int batch_size, int dim, float* inputs) {
     Loss* loss = (Loss*)malloc(sizeof(Loss));
-    loss->downstream_grads = (float*)malloc(batch_size * dim * sizeof(float));
+    MALLOC(&loss->downstream_grads, batch_size * dim * sizeof(float));
     loss->type = LOSS_CROSS_ENTROPY;
     loss->dim = dim;
     loss->inputs = inputs;

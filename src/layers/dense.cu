@@ -33,7 +33,7 @@ Layer* initDenseLayer(int batch_size, int in_dim, int out_dim, float* inputs, in
     layer->forward = dense_forward;
     layer->backward = dense_backward;
     layer->update = dense_update;
-    layer->downstream_grads = (float*)malloc(batch_size * in_dim * sizeof(float));
+    MALLOC(&layer->downstream_grads, batch_size * in_dim * sizeof(float));
     layer->inputs = inputs;
     layer->layer_data = denseLayer;
     layer->type = LAYER_DENSE;
@@ -65,9 +65,16 @@ void dense_forward(Layer* layer, int batch_size) {
     int in_dim = denseLayer->in_dim;
     int out_dim = denseLayer->out_dim;
 
-    host_populate_inputs_augmented(inputs, inputs_augmented, batch_size, in_dim);
-    host_matrix_multiply(inputs_augmented, weights, outs, batch_size, in_dim + 1, out_dim);
+    if (USE_CUDA) {
+        host_populate_inputs_augmented(inputs, inputs_augmented, batch_size, in_dim);
+        cuda_matrix_multiply(inputs_augmented, weights, outs, batch_size, in_dim + 1, out_dim);
+    } else {
+        host_populate_inputs_augmented(inputs, inputs_augmented, batch_size, in_dim);
+        host_matrix_multiply(inputs_augmented, weights, outs, batch_size, in_dim + 1, out_dim);
+    }
 }
+
+
 
 
 void dense_backward(Layer* layer, int batch_size) {
@@ -85,11 +92,17 @@ void host_dense_backward(DenseLayer* denseLayer, Layer* layer, int batch_size) {
     float* inputs_augmented = denseLayer->inputs_augmented;
     float* inputs_augmented_T = denseLayer->inputs_augmented_T;
 
-    host_transpose(inputs_augmented, inputs_augmented_T, batch_size, in_dim + 1);
-    host_matrix_multiply(inputs_augmented_T, layer->upstream_grads, weights_grads, in_dim + 1, batch_size, out_dim);
-
-    host_transpose(weights, weights_T, in_dim + 1, out_dim);
-    host_matrix_multiply(layer->upstream_grads, weights_T, inputs_augmented, batch_size, out_dim, in_dim + 1); // reuse of memory allocated for inputs augmented
+    if (USE_CUDA) {
+        host_transpose(inputs_augmented, inputs_augmented_T, batch_size, in_dim + 1);
+        cuda_matrix_multiply(inputs_augmented_T, layer->upstream_grads, weights_grads, in_dim + 1, batch_size, out_dim);
+        host_transpose(weights, weights_T, in_dim + 1, out_dim);
+        cuda_matrix_multiply(layer->upstream_grads, weights_T, inputs_augmented, batch_size, out_dim, in_dim + 1); // reuse of memory allocated for inputs augmented
+    } else {
+        host_transpose(inputs_augmented, inputs_augmented_T, batch_size, in_dim + 1);
+        host_matrix_multiply(inputs_augmented_T, layer->upstream_grads, weights_grads, in_dim + 1, batch_size, out_dim);
+        host_transpose(weights, weights_T, in_dim + 1, out_dim);
+        host_matrix_multiply(layer->upstream_grads, weights_T, inputs_augmented, batch_size, out_dim, in_dim + 1); // reuse of memory allocated for inputs augmented
+    }
 
     #pragma omp parallel for collapse(2)
     for (int i = 0; i < batch_size; i++) {

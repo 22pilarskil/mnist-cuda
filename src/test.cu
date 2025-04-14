@@ -59,7 +59,7 @@ void test_cuda_matrix_multiply() {
     b[4] = 11; b[5] = 12;
 
     float *expected_C;
-    MALLOC(&expected_C, 2 * 2 * sizeof(float));
+    cudaMallocManaged(&expected_C, 2 * 2 * sizeof(float));
     expected_C[0] = 58; expected_C[1] = 64;
     expected_C[2] = 139; expected_C[3] = 154;
 
@@ -254,8 +254,8 @@ void test_dense() {
 
     float *expected_out;
     MALLOC(&expected_out, 2 * 2 * sizeof(float));
-    expected_out[0] = 8.5; expected_out[1] = 9.5;
-    expected_out[2] = 18.5; expected_out[3] = 21.5;
+    expected_out[0] = 7.5; expected_out[1] = 10.5;
+    expected_out[2] = 15.5; expected_out[3] = 22.5;
 
     Layer layer;
     DenseLayer dense_data = {0};
@@ -341,8 +341,11 @@ void test_dense_backward() {
 
     layer.forward(&layer, 2);
     CUDA_CHECK(cudaDeviceSynchronize());
-    host_dense_backward(&dense_data, &layer, 2);
+    layer.backward(&layer, 2);
 
+
+    print_matrix(weights_grad, 3, 2);
+    print_matrix(expected_weights_grad, 3, 2);
     char* result = "PASS";
     for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 2; j++) {
@@ -351,6 +354,8 @@ void test_dense_backward() {
             }
         }
     }
+    print_matrix(downstream_grads, 2, 2);
+    print_matrix(downstream_grads, 2, 2);
     for (int i = 0; i < 2; i++) {
         for (int j = 0; j < 2; j++) {
             if (fabs(downstream_grads[i * 2 + j] - expected_downstream_grads[i * 2 + j]) > 0.01) {

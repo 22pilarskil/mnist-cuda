@@ -6,7 +6,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#define TILE_SIZE 16
+#define TILE_SIZE 32
 
 void host_matrix_multiply(float* A, float* B, float* C, int N, int K, int M) {
 
@@ -28,24 +28,24 @@ void host_matrix_multiply(float* A, float* B, float* C, int N, int K, int M) {
     }
 }
 
-__global__ void cuda_matrix_multiply_kernel(float *A, float *B, float *C, int M, int N, int K) {
+__global__ void cuda_matrix_multiply_kernel(float *A, float *B, float *C, int N, int K, int M) {
     __shared__ float Asub[TILE_SIZE][TILE_SIZE];
     __shared__ float Bsub[TILE_SIZE][TILE_SIZE];
 
+    // Corrected indices: row in A (N) and col in B (M)
     int row = blockIdx.y * TILE_SIZE + threadIdx.y;
     int col = blockIdx.x * TILE_SIZE + threadIdx.x;
 
     float sum = 0.0f;
 
     for (int t = 0; t < (K + TILE_SIZE - 1) / TILE_SIZE; ++t) {
-
-        if (row < M && t * TILE_SIZE + threadIdx.x < K)
+        if (row < N && t * TILE_SIZE + threadIdx.x < K)
             Asub[threadIdx.y][threadIdx.x] = A[row * K + t * TILE_SIZE + threadIdx.x];
         else
             Asub[threadIdx.y][threadIdx.x] = 0.0f;
 
-        if (t * TILE_SIZE + threadIdx.y < K && col < N)
-            Bsub[threadIdx.y][threadIdx.x] = B[(t * TILE_SIZE + threadIdx.y) * N + col];
+        if (t * TILE_SIZE + threadIdx.y < K && col < M)
+            Bsub[threadIdx.y][threadIdx.x] = B[(t * TILE_SIZE + threadIdx.y) * M + col];
         else
             Bsub[threadIdx.y][threadIdx.x] = 0.0f;
 
@@ -56,14 +56,15 @@ __global__ void cuda_matrix_multiply_kernel(float *A, float *B, float *C, int M,
         __syncthreads();
     }
 
-    if (row < M && col < N)
-        C[row * N + col] = sum;
+    // Write to C (N×M matrix)
+    if (row < N && col < M)
+        C[row * M + col] = sum;
 }
 
 void cuda_matrix_multiply(float* A, float* B, float* C, int N, int K, int M) {
     dim3 blockDim(TILE_SIZE, TILE_SIZE);
-    dim3 gridDim((N + TILE_SIZE - 1) / TILE_SIZE, (M + TILE_SIZE - 1) / TILE_SIZE);
-    cuda_matrix_multiply_kernel<<<gridDim, blockDim>>>(A, B, C, M, N, K);
+    dim3 gridDim((M + TILE_SIZE - 1) / TILE_SIZE, (N + TILE_SIZE - 1) / TILE_SIZE);
+    cuda_matrix_multiply_kernel<<<gridDim, blockDim>>>(A, B, C, N, K, M);
     CUDA_CHECK(cudaDeviceSynchronize());
 }
 

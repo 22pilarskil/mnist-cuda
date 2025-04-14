@@ -17,7 +17,7 @@ Layer* initSoftmax(int batch_size, int dim, float* inputs) {
     layer->backward = softmax_backward;
     layer->update = softmax_update;
     layer->weights_size = 0;
-    layer->downstream_grads = (float*)malloc(batch_size * dim * sizeof(float));
+    MALLOC(&layer->downstream_grads, batch_size * dim * sizeof(float));
     layer->inputs = inputs;
     layer->layer_data = softmax;
     layer->type = LAYER_SOFTMAX;
