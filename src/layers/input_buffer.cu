@@ -10,7 +10,7 @@ Layer* initInputBuffer(int batch_size, int dim) {
     InputBuffer* inputBuffer = (InputBuffer*)malloc(sizeof(InputBuffer));
 
     inputBuffer->dim = dim;
-    cudaMallocManaged(&layer->outputs, batch_size * dim * sizeof(float));
+    MALLOC(&layer->outputs, batch_size * dim * sizeof(float));
 
     layer->weights_size = 0;
     layer->layer_data = inputBuffer;

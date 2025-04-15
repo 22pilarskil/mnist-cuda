@@ -29,10 +29,9 @@ void host_matrix_multiply(float* A, float* B, float* C, int N, int K, int M) {
 }
 
 __global__ void cuda_matrix_multiply_kernel(float *A, float *B, float *C, int N, int K, int M) {
-    __shared__ float Asub[TILE_SIZE][TILE_SIZE];
-    __shared__ float Bsub[TILE_SIZE][TILE_SIZE];
+    __shared__ float Asub[TILE_SIZE * TILE_SIZE];
+    __shared__ float Bsub[TILE_SIZE * TILE_SIZE];
 
-    // Corrected indices: row in A (N) and col in B (M)
     int row = blockIdx.y * TILE_SIZE + threadIdx.y;
     int col = blockIdx.x * TILE_SIZE + threadIdx.x;
 
@@ -40,23 +39,22 @@ __global__ void cuda_matrix_multiply_kernel(float *A, float *B, float *C, int N,
 
     for (int t = 0; t < (K + TILE_SIZE - 1) / TILE_SIZE; ++t) {
         if (row < N && t * TILE_SIZE + threadIdx.x < K)
-            Asub[threadIdx.y][threadIdx.x] = A[row * K + t * TILE_SIZE + threadIdx.x];
+            Asub[threadIdx.y * TILE_SIZE + threadIdx.x] = A[row * K + t * TILE_SIZE + threadIdx.x];
         else
-            Asub[threadIdx.y][threadIdx.x] = 0.0f;
+            Asub[threadIdx.y * TILE_SIZE + threadIdx.x] = 0.0f;
 
         if (t * TILE_SIZE + threadIdx.y < K && col < M)
-            Bsub[threadIdx.y][threadIdx.x] = B[(t * TILE_SIZE + threadIdx.y) * M + col];
+            Bsub[threadIdx.y * TILE_SIZE + threadIdx.x] = B[(t * TILE_SIZE + threadIdx.y) * M + col];
         else
-            Bsub[threadIdx.y][threadIdx.x] = 0.0f;
+            Bsub[threadIdx.y * TILE_SIZE + threadIdx.x] = 0.0f;
 
         __syncthreads();
 
         for (int i = 0; i < TILE_SIZE; ++i)
-            sum += Asub[threadIdx.y][i] * Bsub[i][threadIdx.x];
+            sum += Asub[threadIdx.y * TILE_SIZE + i] * Bsub[i * TILE_SIZE + threadIdx.x];
         __syncthreads();
     }
 
-    // Write to C (N×M matrix)
     if (row < N && col < M)
         C[row * M + col] = sum;
 }
@@ -68,14 +66,25 @@ void cuda_matrix_multiply(float* A, float* B, float* C, int N, int K, int M) {
     CUDA_CHECK(cudaDeviceSynchronize());
 }
 
-
 void host_transpose(float* weights, float* weights_T, int in_dim, int out_dim) {
-    #pragma omp parallel for collapse(2)
-    for (int i = 0; i < in_dim; i++) {
-        for (int j = 0; j < out_dim; j++) {
-            weights_T[j * in_dim + i] = weights[i * out_dim + j];
-        }
+    #pragma omp parallel for
+    for (int k = 0; k < in_dim * out_dim; k++) {
+        int i = k / out_dim;
+        int j = k % out_dim;
+        weights_T[j * in_dim + i] = weights[i * out_dim + j];
     }
+}
+
+__global__ void cuda_transpose_kernel(float* weights, float* weights_T, int in_dim, int out_dim) {
+    int i = blockIdx.x / out_dim;
+    int j = blockIdx.x % out_dim;
+    weights_T[j * in_dim + i] = weights[i * out_dim + j];
+}
+
+void cuda_transpose(float* weights, float* weights_T, int in_dim, int out_dim) {
+    dim3 gridDim(in_dim * out_dim);
+    cuda_transpose_kernel<<<gridDim, 1>>>(weights, weights_T, in_dim, out_dim);
+    CUDA_CHECK(cudaDeviceSynchronize());
 }
 
 void print_grayscale_image(float* img, int width, int height) {

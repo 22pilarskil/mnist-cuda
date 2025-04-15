@@ -52,7 +52,7 @@ typedef struct {
     int n_layers;
     int batch_size;
     Layer* input_buffer;
-    Layer* layers[6];
+    Layer** layers;
     Loss* loss;
     int broadcast_weights_size;
     float* broadcast_weights_grads;

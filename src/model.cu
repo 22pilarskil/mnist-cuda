@@ -69,6 +69,7 @@ void update(Model* model) {
 Model* init_model(int batch_size) {
     Model* model = (Model*)malloc(sizeof(Model));
     model->n_layers = 6;
+    model->layers = (Layer**)malloc(sizeof(Layer*) * model->n_layers);
     model->batch_size = batch_size;
     model->input_buffer = initInputBuffer(batch_size, 784);
     model->layers[0] = initDenseLayer(batch_size, 784, 256, model->input_buffer->outputs, 1); // dense 1

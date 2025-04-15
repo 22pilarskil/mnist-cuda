@@ -38,10 +38,10 @@ void test_host_matrix_multiply() {
     }
     printf("%s\n", result);
 
-    CUDA_CHECK(cudaFree(A));
-    CUDA_CHECK(cudaFree(B));
-    CUDA_CHECK(cudaFree(C));
-    CUDA_CHECK(cudaFree(expected_C));
+    FREE(A);
+    FREE(B);
+    FREE(C);
+    FREE(expected_C);
 }
 
 void test_cuda_matrix_multiply() {
@@ -64,7 +64,6 @@ void test_cuda_matrix_multiply() {
     expected_C[2] = 139; expected_C[3] = 154;
 
     cuda_matrix_multiply(a, b, c, 2, 3, 2);
-    CUDA_CHECK(cudaDeviceSynchronize());
 
     char* result = "PASS";
     for (int i = 0; i < 2; i++) {
@@ -76,13 +75,13 @@ void test_cuda_matrix_multiply() {
     }
     printf("%s\n", result);
 
-    CUDA_CHECK(cudaFree(a));
-    CUDA_CHECK(cudaFree(b));
-    CUDA_CHECK(cudaFree(c));
-    CUDA_CHECK(cudaFree(expected_C));
+    FREE(a);
+    FREE(b);
+    FREE(c);
+    FREE(expected_C);
 }
 
-void test_transpose() {
+void test_host_transpose() {
     printf("Testing host_transpose: ");
     float *A, *A_T;
     MALLOC(&A, 3 * 2 * sizeof(float));
@@ -109,9 +108,41 @@ void test_transpose() {
     }
     printf("%s\n", result);
 
-    CUDA_CHECK(cudaFree(A));
-    CUDA_CHECK(cudaFree(A_T));
-    CUDA_CHECK(cudaFree(expected_A_T));
+    FREE(A);
+    FREE(A_T);
+    FREE(expected_A_T);
+}
+
+void test_cuda_transpose() {
+    printf("Testing cuda_transpose: ");
+    float *A, *A_T;
+    MALLOC(&A, 3 * 2 * sizeof(float));
+    MALLOC(&A_T, 2 * 3 * sizeof(float));
+
+    A[0] = 7; A[1] = 8;
+    A[2] = 9; A[3] = 10;
+    A[4] = 11; A[5] = 12;
+
+    float *expected_A_T;
+    MALLOC(&expected_A_T, 2 * 3 * sizeof(float));
+    expected_A_T[0] = 7; expected_A_T[1] = 9; expected_A_T[2] = 11;
+    expected_A_T[3] = 8; expected_A_T[4] = 10; expected_A_T[5] = 12;
+
+    cuda_transpose(A, A_T, 3, 2);
+
+    char* result = "PASS";
+    for (int i = 0; i < 2; i++) {
+        for (int j = 0; j < 3; j++) {
+            if (fabs(A_T[i * 3 + j] - expected_A_T[i * 3 + j]) > 0.01) {
+                result = "FAIL";
+            }
+        }
+    }
+    printf("%s\n", result);
+
+    FREE(A);
+    FREE(A_T);
+    FREE(expected_A_T);
 }
 
 void test_softmax() {
@@ -137,7 +168,6 @@ void test_softmax() {
     layer.forward = softmax_forward;
 
     layer.forward(&layer, 2);
-    CUDA_CHECK(cudaDeviceSynchronize());
 
     char* result = "PASS";
     for (int i = 0; i < 2; i++) {
@@ -149,9 +179,9 @@ void test_softmax() {
     }
     printf("%s\n", result);
 
-    CUDA_CHECK(cudaFree(softmax_in));
-    CUDA_CHECK(cudaFree(softmax_out));
-    CUDA_CHECK(cudaFree(expected_out));
+    FREE(softmax_in);
+    FREE(softmax_out);
+    FREE(expected_out);
 }
 
 void test_leaky_relu() {
@@ -180,7 +210,6 @@ void test_leaky_relu() {
     layer.forward = leakyReLU_forward;
 
     layer.forward(&layer, 2);
-    CUDA_CHECK(cudaDeviceSynchronize());
 
     char* result = "PASS";
     for (int i = 0; i < 2; i++) {
@@ -192,9 +221,9 @@ void test_leaky_relu() {
     }
     printf("%s\n", result);
 
-    CUDA_CHECK(cudaFree(relu_in));
-    CUDA_CHECK(cudaFree(relu_out));
-    CUDA_CHECK(cudaFree(expected_relu_out));
+    FREE(relu_in);
+    FREE(relu_out);
+    FREE(expected_relu_out);
 }
 
 void test_sigmoid() {
@@ -220,7 +249,6 @@ void test_sigmoid() {
     layer.forward = sigmoid_forward;
 
     layer.forward(&layer, 2);
-    CUDA_CHECK(cudaDeviceSynchronize());
 
     char* result = "PASS";
     for (int i = 0; i < 2; i++) {
@@ -232,9 +260,9 @@ void test_sigmoid() {
     }
     printf("%s\n", result);
 
-    CUDA_CHECK(cudaFree(sigmoid_in));
-    CUDA_CHECK(cudaFree(sigmoid_out));
-    CUDA_CHECK(cudaFree(expected_sigmoid_out));
+    FREE(sigmoid_in);
+    FREE(sigmoid_out);
+    FREE(expected_sigmoid_out);
 }
 
 void test_dense() {
@@ -269,7 +297,6 @@ void test_dense() {
     layer.forward = dense_forward;
 
     layer.forward(&layer, 2);
-    CUDA_CHECK(cudaDeviceSynchronize());
 
     char* result = "PASS";
     for (int i = 0; i < 2; i++) {
@@ -281,11 +308,11 @@ void test_dense() {
     }
     printf("%s\n", result);
 
-    CUDA_CHECK(cudaFree(dense_weights));
-    CUDA_CHECK(cudaFree(dense_in));
-    CUDA_CHECK(cudaFree(dense_out));
-    CUDA_CHECK(cudaFree(inputs_augmented));
-    CUDA_CHECK(cudaFree(expected_out));
+    FREE(dense_weights);
+    FREE(dense_in);
+    FREE(dense_out);
+    FREE(inputs_augmented);
+    FREE(expected_out);
 }
 
 void test_dense_backward() {
@@ -340,12 +367,8 @@ void test_dense_backward() {
     layer.backward = dense_backward;
 
     layer.forward(&layer, 2);
-    CUDA_CHECK(cudaDeviceSynchronize());
     layer.backward(&layer, 2);
 
-
-    print_matrix(weights_grad, 3, 2);
-    print_matrix(expected_weights_grad, 3, 2);
     char* result = "PASS";
     for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 2; j++) {
@@ -354,8 +377,6 @@ void test_dense_backward() {
             }
         }
     }
-    print_matrix(downstream_grads, 2, 2);
-    print_matrix(downstream_grads, 2, 2);
     for (int i = 0; i < 2; i++) {
         for (int j = 0; j < 2; j++) {
             if (fabs(downstream_grads[i * 2 + j] - expected_downstream_grads[i * 2 + j]) > 0.01) {
@@ -365,17 +386,17 @@ void test_dense_backward() {
     }
     printf("%s\n", result);
 
-    CUDA_CHECK(cudaFree(dense_weights));
-    CUDA_CHECK(cudaFree(dense_in));
-    CUDA_CHECK(cudaFree(dense_out));
-    CUDA_CHECK(cudaFree(inputs_augmented));
-    CUDA_CHECK(cudaFree(weights_T));
-    CUDA_CHECK(cudaFree(weights_grad));
-    CUDA_CHECK(cudaFree(inputs_augmented_T));
-    CUDA_CHECK(cudaFree(upstream_grads));
-    CUDA_CHECK(cudaFree(downstream_grads));
-    CUDA_CHECK(cudaFree(expected_weights_grad));
-    CUDA_CHECK(cudaFree(expected_downstream_grads));
+    FREE(dense_weights);
+    FREE(dense_in);
+    FREE(dense_out);
+    FREE(inputs_augmented);
+    FREE(weights_T);
+    FREE(weights_grad);
+    FREE(inputs_augmented_T);
+    FREE(upstream_grads);
+    FREE(downstream_grads);
+    FREE(expected_weights_grad);
+    FREE(expected_downstream_grads);
 }
 
 void test_leaky_relu_backward() {
@@ -410,7 +431,6 @@ void test_leaky_relu_backward() {
     layer.backward = leakyReLU_backward;
 
     layer.forward(&layer, 2);
-    CUDA_CHECK(cudaDeviceSynchronize());
     host_leakyReLU_backward(&layer, &leaky_data, 2);
 
     char* result = "PASS";
@@ -423,11 +443,11 @@ void test_leaky_relu_backward() {
     }
     printf("%s\n", result);
 
-    CUDA_CHECK(cudaFree(inputs));
-    CUDA_CHECK(cudaFree(outputs));
-    CUDA_CHECK(cudaFree(upstream_grads));
-    CUDA_CHECK(cudaFree(downstream_grads));
-    CUDA_CHECK(cudaFree(expected_downstream_grads));
+    FREE(inputs);
+    FREE(outputs);
+    FREE(upstream_grads);
+    FREE(downstream_grads);
+    FREE(expected_downstream_grads);
 }
 
 void test_sigmoid_backward() {
@@ -461,7 +481,6 @@ void test_sigmoid_backward() {
     layer.backward = sigmoid_backward;
 
     layer.forward(&layer, 2);
-    CUDA_CHECK(cudaDeviceSynchronize());
     host_sigmoid_backward(upstream_grads, downstream_grads, outputs, 2, 2);
 
     char* result = "PASS";
@@ -474,11 +493,11 @@ void test_sigmoid_backward() {
     }
     printf("%s\n", result);
 
-    CUDA_CHECK(cudaFree(inputs));
-    CUDA_CHECK(cudaFree(outputs));
-    CUDA_CHECK(cudaFree(upstream_grads));
-    CUDA_CHECK(cudaFree(downstream_grads));
-    CUDA_CHECK(cudaFree(expected_downstream_grads));
+    FREE(inputs);
+    FREE(outputs);
+    FREE(upstream_grads);
+    FREE(downstream_grads);
+    FREE(expected_downstream_grads);
 }
 
 void test_cross_entropy() {
@@ -513,15 +532,16 @@ void test_cross_entropy() {
     }
     printf("%s\n", result);
 
-    CUDA_CHECK(cudaFree(inputs));
-    CUDA_CHECK(cudaFree(downstream_grads));
-    CUDA_CHECK(cudaFree(expected_downstream_grads));
+    FREE(inputs);
+    FREE(downstream_grads);
+    FREE(expected_downstream_grads);
 }
 
 int main() {
     test_host_matrix_multiply();
     test_cuda_matrix_multiply();
-    test_transpose();
+    test_host_transpose();
+    test_cuda_transpose();
     test_softmax();
     test_leaky_relu();
     test_sigmoid();
@@ -530,14 +550,6 @@ int main() {
     test_leaky_relu_backward();
     test_sigmoid_backward();
     test_cross_entropy();
-
-    float *test_src, *test_dst;
-    MALLOC((void**)&test_src, 16);
-    MALLOC((void**)&test_dst, 16);
-    cudaMemcpy((void*)test_dst, (void*)test_src, 16, cudaMemcpyDeviceToDevice);
-    cudaDeviceSynchronize();
-    cudaFree(test_src);
-    cudaFree(test_dst);
 
     return 0;
 }

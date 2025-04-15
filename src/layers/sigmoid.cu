@@ -11,7 +11,7 @@ Layer* initSigmoid(int batch_size, int dim, float* inputs) {
     Sigmoid* sigmoid = (Sigmoid*)malloc(sizeof(Sigmoid));
     sigmoid->dim = dim;
 
-    cudaMallocManaged(&layer->outputs, batch_size * dim * sizeof(float));
+    MALLOC(&layer->outputs, batch_size * dim * sizeof(float));
 
     layer->forward = sigmoid_forward;
     layer->backward = sigmoid_backward;

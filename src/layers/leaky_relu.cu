@@ -11,7 +11,7 @@ Layer* initLeakyReLU(int batch_size, int dim, int coeff, float* inputs) {
     leakyReLU->coeff = coeff;
     leakyReLU->dim = dim;
 
-    cudaMallocManaged(&layer->outputs, batch_size * dim * sizeof(float));
+    MALLOC(&layer->outputs, batch_size * dim * sizeof(float));
 
     layer->forward = leakyReLU_forward;
     layer->backward = leakyReLU_backward;

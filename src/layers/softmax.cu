@@ -11,7 +11,7 @@ Layer* initSoftmax(int batch_size, int dim, float* inputs) {
     Softmax* softmax = (Softmax*)malloc(sizeof(Softmax));
     softmax->dim = dim;
 
-    cudaMallocManaged(&layer->outputs, batch_size * dim * sizeof(float));
+    MALLOC(&layer->outputs, batch_size * dim * sizeof(float));
 
     layer->forward = softmax_forward;
     layer->backward = softmax_backward;
