@@ -27,7 +27,11 @@ Layer* initSoftmax(int batch_size, int dim, float* inputs) {
 
 void softmax_forward(Layer* layer, int batch_size) {
     Softmax* softmax = (Softmax*)layer->layer_data;  
-    host_softmax_forward(layer->inputs, layer->outputs, batch_size, softmax->dim);
+    if (USE_CUDA) {
+        cuda_softmax_forward(layer->inputs, layer->outputs, batch_size, softmax->dim);
+    } else {
+        host_softmax_forward(layer->inputs, layer->outputs, batch_size, softmax->dim);
+    }
 }
 
 
@@ -58,8 +62,59 @@ void host_softmax_forward(float* inputs, float* outs, int batch_size, int dim) {
     }
 }
 
+__global__ void cuda_softmax_forward_kernel(float* inputs, float* outs, int batch_size, int dim) {
+    extern __shared__ float temp[];
+
+    float* shared = temp;
+    float* exps = &temp[blockDim.x];
+    float* sums = &temp[2 * blockDim.x];
+
+    int i = blockIdx.x;
+    int j = threadIdx.x;
+    int idx = i * dim + j;
+
+    shared[j] = (j < dim) ? inputs[idx] : -INFINITY;
+    __syncthreads();
+
+    for (int s = blockDim.x / 2; s > 0; s >>= 1) {
+        if (j < s) {
+            shared[j] = fmaxf(shared[j], shared[j + s]);
+        }
+        __syncthreads();
+    }
+
+    float val = (j < dim) ? expf(inputs[idx] - shared[0]) : 0.0f;
+    exps[j] = val;
+    sums[j] = val;
+    __syncthreads();
+
+    for (int s = blockDim.x / 2; s > 0; s >>= 1) {
+        if (j < s) {
+            sums[j] += sums[j + s];
+        }
+        __syncthreads();
+    }
+
+    if (j < dim) {
+        outs[idx] = val / (sums[0] + 1e-5);
+    }
+}
+
+void cuda_softmax_forward(float* inputs, float* outs, int batch_size, int dim) {
+    dim3 gridDim(batch_size);
+    int next_power_of_2 = dim <= 0 ? 1 : (1 << (int)ceil(log2f(dim)));
+    dim3 blockDim(next_power_of_2);
+    size_t shared_mem_size = 3 * next_power_of_2 * sizeof(float);
+    cuda_softmax_forward_kernel<<<gridDim, blockDim, shared_mem_size>>>(inputs, outs, batch_size, dim);
+    CUDA_CHECK(cudaDeviceSynchronize());
+}
+
 void softmax_backward(Layer* layer, int batch_size) {
-    host_softmax_backward(layer->upstream_grads, layer->downstream_grads, layer->outputs, batch_size, ((Softmax *)layer->layer_data)->dim);
+    if (USE_CUDA) {
+        cuda_softmax_backward(layer->upstream_grads, layer->downstream_grads, layer->outputs, batch_size, ((Softmax *)layer->layer_data)->dim);
+    } else {
+        host_softmax_backward(layer->upstream_grads, layer->downstream_grads, layer->outputs, batch_size, ((Softmax *)layer->layer_data)->dim);
+    }
 }
 
 void host_softmax_backward(float* upstream_grads, float* downstream_grads, float* outputs, int batch_size, int dim) {
@@ -70,6 +125,20 @@ void host_softmax_backward(float* upstream_grads, float* downstream_grads, float
         }
     }
 }
+
+__global__ void cuda_softmax_backward_kernel(float* upstream_grads, float* downstream_grads, float* outputs, int batch_size, int dim) {
+    int i = blockIdx.x / dim;
+    int j = blockIdx.x % dim;
+    downstream_grads[i * dim + j] = upstream_grads[i * dim + j];
+}
+
+void cuda_softmax_backward(float* upstream_grads, float* downstream_grads, float* outputs, int batch_size, int dim) {
+    dim3 gridDim(batch_size * dim);
+    cuda_softmax_backward_kernel<<<gridDim, 1>>>(upstream_grads, downstream_grads, outputs, batch_size, dim);
+    CUDA_CHECK(cudaDeviceSynchronize());
+}
+
+
 
 void softmax_update(Layer* layer, int batch_size) {
     

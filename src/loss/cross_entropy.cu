@@ -22,7 +22,7 @@ void host_cross_entropy(Loss* loss, int batch_size, uint8_t* targets) {
 
     float total_loss = 0;
     float total_accuracy = 0;
-    #pragma omp parallel
+    #pragma omp parallel for reduction(+:total_loss,total_accuracy)
     for (int i = 0; i < batch_size; i++) {
         int max_id = 0;
         float max_score = 0;
