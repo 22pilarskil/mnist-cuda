@@ -9,7 +9,7 @@
 #include "../include/layers/sigmoid.h"
 #include <stdio.h>
 
-void forward(Model* model, float* inputs, uint8_t* targets) {
+float* forward(Model* model, float* inputs, uint8_t* targets) {
     inputBuffer_forward(model->input_buffer, inputs, model->batch_size);
     for (int i = 0; i < model->n_layers; i++) {
         if (model->layers[i]->type >= LAYER_TYPE_COUNT) {
@@ -28,6 +28,7 @@ void forward(Model* model, float* inputs, uint8_t* targets) {
             exit(EXIT_FAILURE);
         }
     }
+    return model->loss->inputs; 
 }
 
 void backward(Model* model) {

@@ -7,19 +7,23 @@ def parse_log_file(filepath):
     epochs = []
     accuracies = []
     losses = []
+    times = []
     
     with open(filepath, 'r') as file:
         for line in file:
             # Use regex to extract the numbers
-            match = re.match(r'Epoch (\d+): Avg Accuracy = ([\d.]+), Avg Loss = ([\d.]+)', line)
+            match = re.match(r'Epoch (\d+): Avg Accuracy = ([\d.]+), Avg Loss = ([\d.]+), Avg Time = ([\d.]+)', line)
             if match:
                 epochs.append(int(match.group(1)))
                 accuracies.append(float(match.group(2)))
                 losses.append(float(match.group(3)))
-    
-    return epochs, accuracies, losses
+                times.append(float(match.group(4)))
 
-def plot_training_curves(epochs, accuracies, losses, output_path):
+    avg_time_per_epoch = sum(times) / len(times)
+    
+    return epochs, accuracies, losses, avg_time_per_epoch
+
+def plot_training_curves(epochs, accuracies, losses, avg_time_per_epoch, output_path):
     fig, ax1 = plt.subplots(figsize=(10, 6))
     
     # Plot accuracy on primary y-axis
@@ -30,6 +34,16 @@ def plot_training_curves(epochs, accuracies, losses, output_path):
     ax1.tick_params(axis='y', labelcolor=color)
     ax1.grid(True, linestyle='--', alpha=0.7)
     
+    # Find and annotate the highest accuracy
+    max_acc = max(accuracies)
+    max_acc_epoch = epochs[accuracies.index(max_acc)]
+    ax1.annotate(f'Max Acc: {max_acc:.3f}',
+                 xy=(max_acc_epoch, max_acc),
+                 xytext=(10, 10),
+                 textcoords='offset points',
+                 bbox=dict(boxstyle='round,pad=0.5', fc='yellow', alpha=0.5),
+                 arrowprops=dict(arrowstyle='->'))
+    
     # Create a second y-axis for loss
     ax2 = ax1.twinx()
     color = 'tab:red'
@@ -37,8 +51,18 @@ def plot_training_curves(epochs, accuracies, losses, output_path):
     ax2.plot(epochs, losses, color=color, marker='s', label='Loss')
     ax2.tick_params(axis='y', labelcolor=color)
     
+    # Find and annotate the lowest loss
+    min_loss = min(losses)
+    min_loss_epoch = epochs[losses.index(min_loss)]
+    ax2.annotate(f'Min Loss: {min_loss:.3f}',
+                 xy=(min_loss_epoch, min_loss),
+                 xytext=(10, -20),
+                 textcoords='offset points',
+                 bbox=dict(boxstyle='round,pad=0.5', fc='yellow', alpha=0.5),
+                 arrowprops=dict(arrowstyle='->'))
+    
     # Add title and legend
-    plt.title(f'Training Accuracy and Loss over Epochs (Rank {Path(output_path).stem})')
+    plt.title(f'Test Accuracy and Loss over Epochs (Rank {Path(output_path).stem}, Avg time/epoch: {avg_time_per_epoch:.2f}s)')
     fig.legend(loc='upper right', bbox_to_anchor=(0.85, 0.85))
     
     # Adjust layout
@@ -59,8 +83,8 @@ def process_directory(directory):
             output_path = os.path.join(output_dir, filename.replace('.txt', '.png'))
             
             try:
-                epochs, accuracies, losses = parse_log_file(filepath)
-                plot_training_curves(epochs, accuracies, losses, output_path)
+                epochs, accuracies, losses, avg_time_per_epoch = parse_log_file(filepath)
+                plot_training_curves(epochs, accuracies, losses, avg_time_per_epoch, output_path)
             except Exception as e:
                 print(f"Error processing {filename}: {str(e)}")
 

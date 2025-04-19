@@ -12,9 +12,6 @@ TRAIN_LABELS = os.path.join(MNIST_DATA_DIR, "train-labels-idx1-ubyte/train-label
 TEST_IMAGES = os.path.join(MNIST_DATA_DIR, "t10k-images-idx3-ubyte/t10k-images-idx3-ubyte")
 TEST_LABELS = os.path.join(MNIST_DATA_DIR, "t10k-labels-idx1-ubyte/t10k-labels-idx1-ubyte")
 
-# Output directory
-CHUNKS_DIR = "chunks"
-
 # MNIST constants
 IMAGE_SIZE = 28 * 28  # 784 bytes per image
 TRAIN_SIZE = 60000
@@ -54,6 +51,9 @@ def write_mnist_file(file_path, header, content, num_items):
 
 def split_mnist(n_chunks):
     """Split MNIST files into n_chunks directories."""
+    # Dynamically set chunks directory name
+    CHUNKS_DIR = f"chunks_{n_chunks}"
+
     # Remove chunks directory if it exists
     if os.path.exists(CHUNKS_DIR):
         shutil.rmtree(CHUNKS_DIR)
@@ -104,6 +104,8 @@ def split_mnist(n_chunks):
 
         print(f"Chunk {i}: {train_num} training samples, {test_num} test samples")
 
+    return CHUNKS_DIR  # Return the directory name for reporting
+
 def main():
     if len(sys.argv) != 2:
         print("Usage: python split.py <number_of_chunks>")
@@ -117,8 +119,8 @@ def main():
         print("Error: Please provide a valid positive integer for the number of chunks")
         sys.exit(1)
 
-    split_mnist(n_chunks)
-    print(f"Successfully split MNIST into {n_chunks} chunks in {CHUNKS_DIR}/")
+    chunks_dir = split_mnist(n_chunks)
+    print(f"Successfully split MNIST into {n_chunks} chunks in {chunks_dir}/")
 
 if __name__ == "__main__":
     main()

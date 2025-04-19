@@ -123,10 +123,10 @@ MNISTData load_mnist(uint32_t batch_size, int rank) {
     char test_images_path[100];
     char test_labels_path[100];
 
-    sprintf(train_images_path, "chunks/chunk_%d/train-images-idx3-ubyte", rank);
-    sprintf(train_labels_path, "chunks/chunk_%d/train-labels-idx1-ubyte", rank);
-    sprintf(test_images_path, "chunks/chunk_%d/t10k-images-idx3-ubyte", rank);
-    sprintf(test_labels_path, "chunks/chunk_%d/t10k-labels-idx1-ubyte", rank);
+    sprintf(train_images_path, "chunks_4/chunk_%d/train-images-idx3-ubyte", rank);
+    sprintf(train_labels_path, "chunks_4/chunk_%d/train-labels-idx1-ubyte", rank);
+    sprintf(test_images_path, "chunks_4/chunk_%d/t10k-images-idx3-ubyte", rank);
+    sprintf(test_labels_path, "chunks_4/chunk_%d/t10k-labels-idx1-ubyte", rank);
 
     data.train = load_mnist_set(train_images_path, train_labels_path, batch_size);
     data.test = load_mnist_set(test_images_path, test_labels_path, batch_size);

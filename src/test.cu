@@ -168,7 +168,6 @@ void test_softmax() {
     layer.forward = softmax_forward;
 
     layer.forward(&layer, 2);
-    print_matrix(softmax_out, 2, 3);
 
     char* result = "PASS";
     for (int i = 0; i < 2; i++) {
@@ -432,7 +431,7 @@ void test_leaky_relu_backward() {
     layer.backward = leakyReLU_backward;
 
     layer.forward(&layer, 2);
-    host_leakyReLU_backward(layer.inputs, layer.upstream_grads, layer.downstream_grads, leaky_data.coeff, 2, leaky_data.dim);
+    layer.backward(&layer, 2);
 
     char* result = "PASS";
     for (int i = 0; i < 2; i++) {
@@ -482,7 +481,7 @@ void test_sigmoid_backward() {
     layer.backward = sigmoid_backward;
 
     layer.forward(&layer, 2);
-    host_sigmoid_backward(upstream_grads, downstream_grads, outputs, 2, 2);
+    layer.backward(&layer, 2);
 
     char* result = "PASS";
     for (int i = 0; i < 2; i++) {

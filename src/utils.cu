@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+
 #define TILE_SIZE 32
 
 void host_matrix_multiply(float* A, float* B, float* C, int N, int K, int M) {
@@ -87,18 +88,42 @@ void cuda_transpose(float* weights, float* weights_T, int in_dim, int out_dim) {
     CUDA_CHECK(cudaDeviceSynchronize());
 }
 
-void print_grayscale_image(float* img, int width, int height) {
+void host_multiply(float* weights, int weights_size, float coeff) {
+    #pragma omp parallel for
+    for (int i = 0; i < weights_size; i++) {
+        weights[i] *= coeff;
+    }
+}
+
+__global__ void cuda_multiply_kernel(float* weights, int weights_size, float coeff) {
+    weights[blockIdx.x] *= coeff;
+}
+
+void cuda_multiply(float* weights, int weights_size, float coeff) {
+    dim3 gridDim(weights_size);
+    cuda_multiply_kernel<<<gridDim, 1>>>(weights, weights_size, coeff);
+    CUDA_CHECK(cudaDeviceSynchronize());
+}
+
+
+
+void print_grayscale_image(float* img, int width, int height, FILE* out) {
     const char* shades = " .:-=+*#%@";  // 10 shades from light to dark
+    FILE* target = out ? out : stdout;
+
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
             float pixel = img[y * width + x];
-            int shade_idx = (int)(pixel * 10);  // Map 0-255 to 0-9
-            printf("%c", shades[shade_idx]);
+            int shade_idx = (int)(pixel * 10);  // Map 0.0–1.0 to 0–9
+            if (shade_idx < 0) shade_idx = 0;
+            if (shade_idx > 9) shade_idx = 9;
+            fprintf(target, "%c", shades[shade_idx]);
         }
-        printf("\n");
+        fprintf(target, "\n");
     }
-    fflush(stdout);
+    fflush(target);
 }
+
 
 void print_matrix(float* matrix, int rows, int cols) {
     for (int i = 0; i < rows; i++) {
@@ -106,13 +131,6 @@ void print_matrix(float* matrix, int rows, int cols) {
             printf("%.6f ", matrix[i * cols + j]);
         }
         printf("\n");
-    }
-}
-
-void host_multiply(float* weights, int weights_size, float coeff) {
-    #pragma omp parallel for
-    for (int i = 0; i < weights_size; i++) {
-        weights[i] *= coeff;
     }
 }
 
@@ -150,7 +168,7 @@ void make_results_dir() {
 
 }
 
-void write_results(int epoch, float avg_accuracy, float avg_loss, int rank) {
+void write_results(int epoch, float avg_accuracy, float avg_loss, int rank, float time_spent) {
     char filename[128];
     char* dir_name = get_dir_name();
     snprintf(filename, sizeof(filename), "%s/%d.txt", dir_name, rank);
@@ -159,7 +177,7 @@ void write_results(int epoch, float avg_accuracy, float avg_loss, int rank) {
         fprintf(stderr, "Failed to open file %s for writing\n", filename);
         exit(EXIT_FAILURE);
     }
-    fprintf(fp, "Epoch %d: Avg Accuracy = %f, Avg Loss = %f\n", epoch, avg_accuracy, avg_loss);
+    fprintf(fp, "Epoch %d: Avg Accuracy = %f, Avg Loss = %f, Avg Time = %f\n", epoch, avg_accuracy, avg_loss, time_spent);
     fclose(fp);
     free(dir_name);
 }

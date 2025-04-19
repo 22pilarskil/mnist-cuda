@@ -1,5 +1,6 @@
 *.o
 data/
-chunks/
+chunks*/
 train
 results*/
+*.txt

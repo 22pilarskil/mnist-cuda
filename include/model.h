@@ -60,6 +60,6 @@ typedef struct {
 
 Model* init_model(int batch_size);
 
-void forward(Model* model, float* inputs, uint8_t* targets);
+float* forward(Model* model, float* inputs, uint8_t* targets);
 void backward(Model* model);
 void update(Model* model);
