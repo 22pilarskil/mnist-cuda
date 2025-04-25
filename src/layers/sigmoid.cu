@@ -1,7 +1,6 @@
 #include "../../include/model.h"
 #include "../../include/macros.h"
 #include "../../include/utils.h"
-#include "../../include/layers/sigmoid.h"
 #include <stdio.h>
 #include <math.h>
 

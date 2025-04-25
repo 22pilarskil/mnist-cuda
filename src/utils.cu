@@ -142,10 +142,13 @@ char* get_dir_name() {
     }
     char suffix[64] = "";
     if (USE_CUDA) {
-        strcat(suffix, "_withcuda");
+        strcat(suffix, "_cuda");
     }
-    if (USE_MPI) {
-        strcat(suffix, "_withmpi");
+    if (USE_MPI_WEIGHT_SHARING) {
+        strcat(suffix, "_weightsharing");
+    }
+    if (USE_MPI_MODEL_PARALLELISM) {
+        strcat(suffix, "_modelparallelism");
     }
     snprintf(dir_name, 64, "results%s", suffix);
     return dir_name;

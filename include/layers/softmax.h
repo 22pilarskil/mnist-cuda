@@ -1,9 +1,14 @@
 #include "../../include/model.h"
 #include "../../include/macros.h"
 
+#ifndef SOFTMAX_H
+#define SOFTMAX_H
+
 typedef struct {
     int dim;
 } Softmax;
+
+#endif
 
 void softmax_forward(Layer* layer, int batch_size);
 Layer* initSoftmax(int batch_size, int dim, float* inputs);

@@ -1,7 +1,6 @@
 #include "../../include/model.h"
 #include "../../include/macros.h"
 #include "../../include/utils.h"
-#include "../../include/layers/dense.h"
 #include <stdio.h>
 #include <math.h>
 #include <mpi.h>
@@ -118,7 +117,7 @@ void dense_backward(Layer* layer, int batch_size) {
     }
 
 
-    if (!USE_MPI) {
+    if (!USE_MPI_WEIGHT_SHARING) {
         dense_update(layer, batch_size);
     }
 }

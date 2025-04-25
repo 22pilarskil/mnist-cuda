@@ -1,10 +1,15 @@
 #include "../../include/model.h"
 #include "../../include/macros.h"
 
+#ifndef LEAKYRELU_H
+#define LEAKYRELU_H
+
 typedef struct {
     float coeff;
     int dim;
 } LeakyReLU;
+
+#endif
 
 Layer* initLeakyReLU(int batch_size, int dim, int coeff, float* inputs);
 void leakyReLU_forward(Layer* layer, int batch_size);

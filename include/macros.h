@@ -1,5 +1,6 @@
 #define USE_CUDA 1
-#define USE_MPI 0
+#define USE_MPI_WEIGHT_SHARING 1
+#define USE_MPI_MODEL_PARALLELISM 0
 #define LR 0.01
 
 #ifdef USE_CUDA

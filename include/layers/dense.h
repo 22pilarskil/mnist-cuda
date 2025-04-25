@@ -1,6 +1,9 @@
 #include "../../include/model.h"
 #include "../../include/macros.h"
 
+#ifndef DENSE_H
+#define DENSE_H
+
 typedef struct {
     float* inputs_augmented;
     float* inputs_augmented_T;
@@ -12,6 +15,8 @@ typedef struct {
     int dim_with_bias;
     int id;
 } DenseLayer;
+
+#endif
 
 void dense_forward(Layer* layer, int batch_size);
 void host_dense_forward(float* weights, float* inputs, float* inputs_augmented, float* outs, int batch_size, int in_dim, int out_dim);
