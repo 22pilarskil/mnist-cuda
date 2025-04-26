@@ -39,6 +39,7 @@ struct Layer {
     float* weights_grads;
     float* weights;
     int weights_size;
+    int id;
     const char* name;
 };
 
@@ -60,4 +61,5 @@ typedef struct {
     Loss* loss;
     int broadcast_weights_size;
     float* broadcast_weights_grads;
+    int num_machines;
 } Model;

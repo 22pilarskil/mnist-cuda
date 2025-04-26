@@ -352,7 +352,6 @@ void test_dense_backward() {
     DenseLayer dense_data = {0};
     dense_data.in_dim = 2;
     dense_data.out_dim = 2;
-    dense_data.id = 1;
     dense_data.inputs_augmented = inputs_augmented;
     dense_data.weights_T = weights_T;
     dense_data.inputs_augmented_T = inputs_augmented_T;

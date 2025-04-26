@@ -6,7 +6,7 @@
 #include <mpi.h>
 
 
-Layer* initMPIRecvBuffer(int batch_size, int dim, int comm, float* inputs) {
+Layer* initMPIRecvBuffer(int batch_size, int dim, int comm) {
     Layer* layer = (Layer*)malloc(sizeof(Layer));
     MPIRecvBuffer* mpiRecvBuffer = (MPIRecvBuffer*)malloc(sizeof(MPIRecvBuffer));
     mpiRecvBuffer->dim = dim;
@@ -18,7 +18,6 @@ Layer* initMPIRecvBuffer(int batch_size, int dim, int comm, float* inputs) {
     layer->backward = mpi_recv_buffer_backward;
     layer->weights_size = 0;
     MALLOC(&layer->downstream_grads, batch_size * dim * sizeof(float));
-    layer->inputs = inputs;
     layer->layer_data = mpiRecvBuffer;
     layer->type = LAYER_MPI_RECV_BUFFER;
     return layer;
@@ -37,4 +36,10 @@ void mpi_recv_buffer_backward(Layer* layer, int batch_size) {
     int dim = mpiRecvBuffer->dim;
     int comm = mpiRecvBuffer->comm;
     MPI_Send(layer->upstream_grads, batch_size * dim, MPI_FLOAT, comm, 0, MPI_COMM_WORLD);
+
+}
+
+
+void mpi_recv_buffer_update(Layer* layer, int batch_size) {
+
 }

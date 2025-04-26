@@ -11,7 +11,7 @@ typedef struct {
 
 #endif
 
-Layer* initLeakyReLU(int batch_size, int dim, int coeff, float* inputs);
+Layer* initLeakyReLU(int batch_size, int dim, int coeff, float* inputs, int id);
 void leakyReLU_forward(Layer* layer, int batch_size);
 void leakyReLU_backward(Layer* layer, int batch_size);
 void leakyReLU_update(Layer* layer, int batch_size);

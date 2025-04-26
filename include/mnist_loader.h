@@ -24,7 +24,7 @@ typedef struct {
 } MNISTData;
 
 // Function declarations
-MNISTData load_mnist(uint32_t batch_size, int rank);
+MNISTData load_mnist(uint32_t batch_size, int rank, int size);
 void free_mnist(MNISTData* data);
 void load_batch(MNISTData* data, int is_train, uint32_t batch_num,
                 float* batch_images, uint8_t* batch_labels);

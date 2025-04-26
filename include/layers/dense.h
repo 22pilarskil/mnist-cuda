@@ -13,7 +13,6 @@ typedef struct {
     int in_dim;
     int out_dim;
     int dim_with_bias;
-    int id;
 } DenseLayer;
 
 #endif

@@ -132,6 +132,7 @@ void print_matrix(float* matrix, int rows, int cols) {
         }
         printf("\n");
     }
+    fflush(stdout);
 }
 
 char* get_dir_name() {

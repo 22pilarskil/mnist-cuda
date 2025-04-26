@@ -12,8 +12,6 @@ Layer* initMPISendBuffer(int batch_size, int dim, int comm, float* inputs) {
     mpiSendBuffer->dim = dim;
     mpiSendBuffer->comm = comm;
 
-    MALLOC(&layer->outputs, batch_size * dim * sizeof(float));
-
     layer->forward = mpi_send_buffer_forward;
     layer->backward = mpi_send_buffer_backward;
     layer->weights_size = 0;
@@ -37,4 +35,8 @@ void mpi_send_buffer_backward(Layer* layer, int batch_size) {
     int dim = mpiSendBuffer->dim;
     int comm = mpiSendBuffer->comm;
     MPI_Recv(layer->downstream_grads, batch_size * dim, MPI_FLOAT, comm, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+}
+
+void mpi_send_buffer_update(Layer* layer, int batch_size) {
+
 }

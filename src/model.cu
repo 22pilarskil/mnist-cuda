@@ -4,14 +4,21 @@
 #include <stdio.h>
 
 float* forward(Model* model, float* inputs, uint8_t* targets) {
-    inputBuffer_forward(model->input_buffer, inputs, model->batch_size);
+
+    if (model->input_buffer != NULL) {
+        inputBuffer_forward(model->input_buffer, inputs, model->batch_size);
+    }
+
     for (int i = 0; i < model->n_layers; i++) {
         if (model->layers[i]->type >= LAYER_TYPE_COUNT) {
             printf("Invalid layer type: %d\n", model->layers[i]->type);
             exit(EXIT_FAILURE);
         }
         model->layers[i]->forward(model->layers[i], model->batch_size);
+        fflush(stdout);
     }
+
+
     if (model->loss != NULL) {
         switch (model->loss->type) {
             case LOSS_CROSS_ENTROPY: {
@@ -24,7 +31,8 @@ float* forward(Model* model, float* inputs, uint8_t* targets) {
             }
         }
         return model->loss->inputs; 
-    }
+    } 
+
     return NULL;
 }
 

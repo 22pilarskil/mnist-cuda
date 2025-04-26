@@ -5,13 +5,14 @@
 #include <math.h>
 
 
-Layer* initSoftmax(int batch_size, int dim, float* inputs) {
+Layer* initSoftmax(int batch_size, int dim, float* inputs, int id) {
     Layer* layer = (Layer*)malloc(sizeof(Layer));
     Softmax* softmax = (Softmax*)malloc(sizeof(Softmax));
     softmax->dim = dim;
 
     MALLOC(&layer->outputs, batch_size * dim * sizeof(float));
 
+    layer->id = id;
     layer->forward = softmax_forward;
     layer->backward = softmax_backward;
     layer->update = softmax_update;

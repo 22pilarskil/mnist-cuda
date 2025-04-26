@@ -2,5 +2,6 @@
 data/
 chunks*/
 train
+test
 results*/
 *.txt

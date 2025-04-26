@@ -11,7 +11,7 @@ typedef struct {
 #endif
 
 void softmax_forward(Layer* layer, int batch_size);
-Layer* initSoftmax(int batch_size, int dim, float* inputs);
+Layer* initSoftmax(int batch_size, int dim, float* inputs, int id);
 void softmax_backward(Layer* layer, int batch_size);
 void softmax_update(Layer* layer, int batch_size);
 

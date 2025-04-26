@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 
-Layer* initLeakyReLU(int batch_size, int dim, int coeff, float* inputs) {
+Layer* initLeakyReLU(int batch_size, int dim, int coeff, float* inputs, int id) {
     Layer* layer = (Layer*)malloc(sizeof(Layer));
     LeakyReLU* leakyReLU = (LeakyReLU*)malloc(sizeof(LeakyReLU));
     leakyReLU->coeff = coeff;
@@ -12,6 +12,7 @@ Layer* initLeakyReLU(int batch_size, int dim, int coeff, float* inputs) {
 
     MALLOC(&layer->outputs, batch_size * dim * sizeof(float));
 
+    layer->id = id;
     layer->forward = leakyReLU_forward;
     layer->backward = leakyReLU_backward;
     layer->update = leakyReLU_update;

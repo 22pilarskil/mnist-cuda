@@ -11,7 +11,6 @@ Layer* initDenseLayer(int batch_size, int in_dim, int out_dim, float* inputs, in
     DenseLayer* denseLayer = (DenseLayer*)malloc(sizeof(DenseLayer));
     denseLayer->in_dim = in_dim;
     denseLayer->out_dim = out_dim;
-    denseLayer->id = id;
 
     layer->weights_size = (in_dim + 1) * out_dim * sizeof(float);
     
@@ -28,6 +27,7 @@ Layer* initDenseLayer(int batch_size, int in_dim, int out_dim, float* inputs, in
         layer->weights[i] = scale * ((float)rand() / RAND_MAX - 0.5f); // Random [-scale/2, scale/2]
     }
 
+    layer->id = id;
     layer->forward = dense_forward;
     layer->backward = dense_backward;
     layer->update = dense_update;
@@ -88,8 +88,6 @@ void dense_forward(Layer* layer, int batch_size) {
 }
 
 
-
-
 void dense_backward(Layer* layer, int batch_size) {
 
     DenseLayer* denseLayer = (DenseLayer*)layer->layer_data; 
@@ -115,7 +113,6 @@ void dense_backward(Layer* layer, int batch_size) {
         host_matrix_multiply(layer->upstream_grads, weights_T, inputs_augmented, batch_size, out_dim, in_dim + 1); // reuse of memory allocated for inputs augmented
         host_extract_downstream_grads(layer->downstream_grads, inputs_augmented, batch_size, in_dim);
     }
-
 
     if (!USE_MPI_WEIGHT_SHARING) {
         dense_update(layer, batch_size);
